@@ -223,17 +223,6 @@
         let micEnabled = false;
         let isRecording = false;
 
-        // Check for the best supported codec
-        const getSupportedMimeType = () => {
-            const types = [
-                'video/mp4;codecs=h264,aac',
-                'video/webm;codecs=h264,opus',
-                'video/webm;codecs=vp9,opus',
-                'video/webm'
-            ];
-            return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
-        };
-
         const updateRecordingState = (recording) => {
             isRecording = recording;
             recordBtn.innerHTML = recording ? 
@@ -317,9 +306,8 @@
                 preview.muted = true;
                 preview.controls = false;
 
-                const mimeType = getSupportedMimeType();
                 mediaRecorder = new MediaRecorder(streamToRecord, {
-                    mimeType,
+                    mimeType: 'video/webm;codecs=vp9',
                     videoBitsPerSecond: 8000000,
                     audioBitsPerSecond: 128000
                 });
@@ -331,16 +319,11 @@
                 };
 
                 mediaRecorder.onstop = async () => {
-                    const mimeType = getSupportedMimeType();
-                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
                     preview.srcObject = null;
                     preview.src = URL.createObjectURL(blob);
                     preview.controls = true;
                     downloadBtn.classList.add('visible');
-
-                    // Log video quality info
-                    const videoTrack = streamToRecord.getVideoTracks()[0];
-                    console.log('Recording settings:', videoTrack.getSettings());
                 };
 
                 mediaRecorder.start(1000);
@@ -367,12 +350,11 @@
         downloadBtn.onclick = async () => {
             if (recordedChunks.length === 0) return;
             
-            const mimeType = mediaRecorder.mimeType;
-            const blob = new Blob(recordedChunks, { type: mimeType });
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `screen-recording-4K-${new Date().toISOString()}.mp4`;
+            a.download = `screen-recording-4K-${new Date().toISOString()}.webm`;
             a.click();
             URL.revokeObjectURL(url);
         };
