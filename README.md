@@ -4,7 +4,7 @@ A lightweight, high-quality screen recorder that works directly in your browser.
 
 ## 🚀 Quick Start
 
-1. Visit [your-deployed-url]
+1. Visit https://free-screen-recorder.vercel.app/
 2. Click the microphone icon to enable/disable audio recording
 3. Click "Start Recording" to begin
 4. Select the screen/window you want to record
@@ -73,8 +73,7 @@ For sharing recordings:
 ```
 screen-recorder/
 ├── index.html      # Main application file
-├── README.md       # Documentation
-└── LICENSE         # License file
+└── README.md       # Documentation
 ```
 
 ### Key Components
