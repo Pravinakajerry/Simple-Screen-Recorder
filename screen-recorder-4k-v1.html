@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Free Screen Recorder</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/inter-ui/3.19.3/inter.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: #fff;
+            color: #000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .intro {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .intro.hidden {
+            display: none;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .features {
+            font-size: 15px;
+            color: #666;
+            max-width: 480px;
+            line-height: 1.6;
+        }
+
+        .preview-container {
+            background: #f9f9f9;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 100%;
+            max-width: 1200px;
+            aspect-ratio: 16/9;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .preview-container.active {
+            display: flex;
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .recording-indicator {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .recording-indicator.active {
+            display: flex;
+        }
+
+        .recording-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff4a4a;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            padding: 10px;
+            color: #000;
+            background: transparent;
+        }
+
+        button:hover {
+            opacity: 0.7;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #recordBtn {
+            background: #000;
+            color: #fff;
+            padding: 10px 20px;
+        }
+
+        button.active {
+            color: #ff4a4a;
+        }
+
+        #downloadBtn {
+            display: none;
+        }
+
+        #downloadBtn.visible {
+            display: flex;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="intro" id="intro">
+            <h1>Free Screen Recorder</h1>
+            <p class="features">
+                High quality 4K screen recording with optional audio capture. 
+                Simple, fast, and free. No installation needed.
+            </p>
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+            <video id="preview" autoplay muted></video>
+            <div class="recording-indicator">
+                <div class="recording-dot"></div>
+                Recording
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="micBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+
+            <button id="recordBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                </svg>
+                Start Recording
+            </button>
+
+            <button id="downloadBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const preview = document.getElementById('preview');
+        const recordBtn = document.getElementById('recordBtn');
+        const micBtn = document.getElementById('micBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const intro = document.getElementById('intro');
+        const previewContainer = document.getElementById('previewContainer');
+        const recordingIndicator = document.querySelector('.recording-indicator');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let audioStream = null;
+        let micEnabled = false;
+        let isRecording = false;
+
+        // Check for the best supported codec
+        const getSupportedMimeType = () => {
+            const types = [
+                'video/mp4;codecs=h264,aac',
+                'video/webm;codecs=h264,opus',
+                'video/webm;codecs=vp9,opus',
+                'video/webm'
+            ];
+            return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+        };
+
+        const updateRecordingState = (recording) => {
+            isRecording = recording;
+            recordBtn.innerHTML = recording ? 
+                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12"/>
+                </svg> Stop Recording` : 
+                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                </svg> Start Recording`;
+            recordingIndicator.classList.toggle('active', recording);
+            document.title = recording ? 'Recording... | Screen Recorder' : 'Free Screen Recorder';
+            micBtn.disabled = recording;
+            downloadBtn.classList.remove('visible');
+            
+            if (!recording) {
+                preview.controls = true;
+            }
+
+            if (recording || recordedChunks.length > 0) {
+                intro.classList.add('hidden');
+                previewContainer.classList.add('active');
+            }
+        };
+
+        micBtn.onclick = async () => {
+            if (!micEnabled) {
+                try {
+                    audioStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            channelCount: { ideal: 2 },
+                            sampleRate: { ideal: 48000 },
+                            sampleSize: { ideal: 24 }
+                        } 
+                    });
+                    micEnabled = true;
+                    micBtn.classList.add('active');
+                } catch (err) {
+                    console.error('Microphone error:', err);
+                    micEnabled = false;
+                    micBtn.classList.remove('active');
+                }
+            } else {
+                if (audioStream) {
+                    audioStream.getTracks().forEach(track => track.stop());
+                }
+                micEnabled = false;
+                micBtn.classList.remove('active');
+            }
+        };
+
+        recordBtn.onclick = async () => {
+            if (isRecording) {
+                stopRecording();
+                return;
+            }
+
+            recordedChunks = [];
+            downloadBtn.classList.remove('visible');
+            
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        displaySurface: 'monitor',
+                        width: { ideal: 3840 },
+                        height: { ideal: 2160 },
+                        frameRate: { ideal: 60 },
+                        cursor: 'always'
+                    }
+                });
+
+                let streamToRecord = screenStream;
+                if (micEnabled && audioStream) {
+                    const tracks = [...screenStream.getTracks(), ...audioStream.getTracks()];
+                    streamToRecord = new MediaStream(tracks);
+                }
+
+                preview.srcObject = streamToRecord;
+                preview.muted = true;
+                preview.controls = false;
+
+                const mimeType = getSupportedMimeType();
+                mediaRecorder = new MediaRecorder(streamToRecord, {
+                    mimeType,
+                    videoBitsPerSecond: 8000000,
+                    audioBitsPerSecond: 128000
+                });
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const mimeType = getSupportedMimeType();
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    preview.srcObject = null;
+                    preview.src = URL.createObjectURL(blob);
+                    preview.controls = true;
+                    downloadBtn.classList.add('visible');
+
+                    // Log video quality info
+                    const videoTrack = streamToRecord.getVideoTracks()[0];
+                    console.log('Recording settings:', videoTrack.getSettings());
+                };
+
+                mediaRecorder.start(1000);
+                updateRecordingState(true);
+
+                screenStream.getVideoTracks()[0].onended = () => {
+                    stopRecording();
+                };
+
+            } catch (err) {
+                console.error('Recording error:', err);
+                updateRecordingState(false);
+            }
+        };
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                preview.srcObject?.getTracks().forEach(track => track.stop());
+                updateRecordingState(false);
+            }
+        }
+
+        downloadBtn.onclick = async () => {
+            if (recordedChunks.length === 0) return;
+            
+            const mimeType = mediaRecorder.mimeType;
+            const blob = new Blob(recordedChunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `screen-recording-4K-${new Date().toISOString()}.mp4`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+    </script>
+</body>
+</html>
